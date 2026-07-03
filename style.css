@@ -299,6 +299,35 @@ body {
   cursor: default;
 }
 
+/* ===== 🎒 자원 가방 ===== */
+#bag {
+  background: linear-gradient(180deg, var(--panel), var(--bg-2));
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 11px 14px; margin-bottom: 12px; box-shadow: var(--shadow);
+}
+.bag-title { font-size: 13px; font-weight: 800; }
+.bag-hint { font-size: 11px; font-weight: 400; color: var(--muted); }
+#bag-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+#bag-chips .bag-empty { font-size: 11px; color: var(--muted); }
+.bag-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 20px; padding: 4px 6px 4px 10px; font-size: 12px; font-weight: 700;
+}
+.bag-chip .bc-qty { color: var(--gold); }
+.bag-chip .bc-price { font-size: 10px; color: var(--muted); font-weight: 400; }
+.bag-sell-btn {
+  background: rgba(78,227,154,0.15); border: 1px solid rgba(78,227,154,0.4);
+  color: var(--green); border-radius: 14px; font-size: 10px; font-weight: 800;
+  padding: 2px 8px; cursor: pointer; transition: all .12s;
+}
+.bag-sell-btn:hover:not(:disabled) { background: rgba(78,227,154,0.3); }
+.bag-sell-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* 자연 구역 산출표 */
+.line-yields { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.6; }
+.line-yields .y-rare { color: var(--gold); font-weight: 700; }
+
 /* ===== 카테고리 섹션 ===== */
 .cat-header {
   display: flex; align-items: center; gap: 8px;

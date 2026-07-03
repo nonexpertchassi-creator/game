@@ -11,15 +11,14 @@
   --gold: #ffce54;
   --green: #4ee39a;
   --red: #ff6b6b;
+  --gem: #6ee7f0;
   --radius: 14px;
   --shadow: 0 8px 30px rgba(0,0,0,0.35);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
-  height: 100%;
-}
+html, body { height: 100%; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", Roboto, sans-serif;
@@ -37,6 +36,8 @@ body {
   margin: 0 auto;
   padding: 16px 16px 40px;
 }
+
+.hidden { display: none !important; }
 
 /* ===== 상단 바 ===== */
 #topbar {
@@ -80,15 +81,52 @@ body {
 }
 .money-sub { display: flex; gap: 10px; justify-content: flex-end; margin-top: 2px; align-items: center; }
 #per-second { font-size: 12px; color: var(--green); font-weight: 600; }
+.gem-counter {
+  font-size: 12px; color: var(--gem); font-weight: 800;
+  background: rgba(110,231,240,0.12); padding: 1px 8px; border-radius: 20px;
+  border: 1px solid rgba(110,231,240,0.3);
+}
 .prestige-bonus {
   font-size: 11px; color: var(--accent-2); font-weight: 700;
   background: rgba(124,108,255,0.15); padding: 1px 7px; border-radius: 20px;
 }
 
+/* ===== 탭 ===== */
+#tabs {
+  display: flex; gap: 8px; margin: 14px 0 0;
+}
+.tab-btn {
+  flex: 1;
+  background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+  border-radius: 12px; padding: 10px 8px; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all .15s; position: relative;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  color: var(--text); border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(77,212,255,0.10);
+}
+.tab-badge {
+  display: inline-grid; place-items: center;
+  background: var(--red); color: #fff; font-size: 10px; font-weight: 800;
+  min-width: 18px; height: 18px; border-radius: 20px; padding: 0 4px;
+  margin-left: 4px; vertical-align: 1px;
+}
+
+.tab-page { margin-top: 12px; }
+
+.help-note {
+  font-size: 12px; color: var(--muted); line-height: 1.6;
+  background: rgba(77,212,255,0.05); border: 1px dashed rgba(77,212,255,0.25);
+  border-radius: 10px; padding: 9px 12px; margin: 0 0 12px;
+}
+.help-note b { color: var(--text); }
+
 /* ===== 컨트롤 ===== */
 #controls {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; margin: 14px 2px;
+  gap: 12px; margin: 2px 2px 12px;
 }
 .buy-mode { display: flex; align-items: center; gap: 10px; }
 .ctl-label { font-size: 12px; color: var(--muted); }
@@ -143,13 +181,16 @@ body {
   transition: transform .08s;
 }
 .line-icon-wrap:active { transform: scale(0.92); }
-.line-icon-wrap.spinning { animation: spin 1.2s linear infinite; }
+/* 아이콘(이모지)만 회전 — 개수 배지는 고정 */
+.line-icon-wrap .ico { display: inline-block; }
+.line-icon-wrap.spinning .ico { animation: spin 1.2s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .count-badge {
   position: absolute; bottom: -6px; right: -6px;
-  background: var(--accent-2); color: #fff; font-size: 11px; font-weight: 800;
-  min-width: 22px; height: 22px; border-radius: 20px; display: grid; place-items: center;
-  padding: 0 5px; border: 2px solid var(--bg-2);
+  background: var(--accent-2); color: #fff; font-size: 10px; font-weight: 800;
+  min-width: 22px; height: 20px; border-radius: 20px; display: grid; place-items: center;
+  padding: 0 6px; border: 2px solid var(--bg-2);
+  white-space: nowrap;
 }
 
 .line-mid { min-width: 0; }
@@ -159,11 +200,14 @@ body {
   padding: 1px 6px; border-radius: 6px; font-weight: 800;
 }
 .line-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
-.line-sub b { color: var(--green); }
+.line-sub b { color: var(--text); }
+.line-inv { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.line-inv b { color: var(--gold); }
+.line-inv .sell-info { color: var(--green); font-weight: 700; }
 
 /* 진행 바 */
 .progress-track {
-  margin-top: 9px; height: 16px; background: #0b0f18;
+  margin-top: 8px; height: 16px; background: #0b0f18;
   border-radius: 10px; overflow: hidden; border: 1px solid var(--line); position: relative;
 }
 .progress-fill {
@@ -178,23 +222,32 @@ body {
 }
 
 /* 우측 버튼들 */
-.line-actions { display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 128px; }
+.line-actions { display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 138px; }
 .buy-btn {
   background: linear-gradient(180deg, #263149, #1a2233);
   border: 1px solid #33415e; color: var(--text);
-  border-radius: 10px; padding: 9px 10px; cursor: pointer; text-align: center;
+  border-radius: 10px; padding: 8px 10px; cursor: pointer; text-align: center;
   transition: all .12s; line-height: 1.25;
 }
 .buy-btn .bt-top { font-size: 11px; color: var(--muted); }
-.buy-btn .bt-cost { font-size: 14px; font-weight: 800; }
+.buy-btn .bt-cost { font-size: 13px; font-weight: 800; }
 .buy-btn:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
 .buy-btn.can-buy .bt-cost { color: var(--green); }
 .buy-btn:disabled { opacity: .45; cursor: not-allowed; }
 
+.buyer-btn {
+  background: linear-gradient(180deg, #1e3a30, #14261f);
+  border: 1px solid #2c5c48; color: #9fe8c8;
+  border-radius: 10px; padding: 6px 10px; cursor: pointer; font-size: 11px; font-weight: 700;
+  transition: all .12s; line-height: 1.3;
+}
+.buyer-btn:hover:not(:disabled) { border-color: var(--green); }
+.buyer-btn:disabled { opacity: .4; cursor: not-allowed; }
+
 .mgr-btn {
   background: linear-gradient(180deg, #3a2f14, #241d0c);
   border: 1px solid #5c4a1c; color: var(--gold);
-  border-radius: 10px; padding: 7px 10px; cursor: pointer; font-size: 12px; font-weight: 700;
+  border-radius: 10px; padding: 6px 10px; cursor: pointer; font-size: 11px; font-weight: 700;
   transition: all .12s;
 }
 .mgr-btn:hover:not(:disabled) { border-color: var(--gold); }
@@ -203,6 +256,74 @@ body {
   background: rgba(78,227,154,0.12); border-color: rgba(78,227,154,0.5); color: var(--green);
   cursor: default;
 }
+
+/* ===== 퀘스트 ===== */
+#quest-list, #shop-list { display: flex; flex-direction: column; gap: 10px; }
+
+.quest {
+  display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+  background: linear-gradient(180deg, var(--panel), var(--bg-2));
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 13px 15px;
+  box-shadow: var(--shadow);
+}
+.quest.done-claimable { border-color: rgba(110,231,240,0.55); }
+.quest.claimed { opacity: 0.5; }
+.quest-name { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+.quest-unlock-tag {
+  font-size: 10px; color: var(--accent); background: rgba(77,212,255,0.12);
+  padding: 1px 6px; border-radius: 6px; font-weight: 700;
+}
+.quest-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.quest-progress-track {
+  margin-top: 7px; height: 8px; background: #0b0f18; border-radius: 8px;
+  overflow: hidden; border: 1px solid var(--line);
+}
+.quest-progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--gem), var(--accent));
+  border-radius: 8px;
+}
+.quest-progress-text { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.quest-right { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.quest-reward { font-size: 13px; font-weight: 800; color: var(--gem); white-space: nowrap; }
+.claim-btn {
+  background: linear-gradient(180deg, var(--gem), #3fb9c4);
+  border: none; color: #04292d; font-weight: 800; font-size: 12px;
+  padding: 7px 14px; border-radius: 9px; cursor: pointer; transition: transform .1s;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.claim-btn:hover { transform: translateY(-1px); }
+@keyframes pulse { 0%,100%{ box-shadow: 0 0 0 0 rgba(110,231,240,0.4);} 50%{ box-shadow: 0 0 0 6px rgba(110,231,240,0);} }
+.claimed-tag { font-size: 11px; color: var(--green); font-weight: 700; }
+
+/* ===== 상점 ===== */
+.shop-item {
+  display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center;
+  background: linear-gradient(180deg, var(--panel), var(--bg-2));
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 13px 15px;
+  box-shadow: var(--shadow);
+}
+.shop-item.locked-item { opacity: 0.6; }
+.shop-icon {
+  width: 48px; height: 48px; border-radius: 11px; display: grid; place-items: center;
+  font-size: 24px; background: var(--panel-2); border: 1px solid var(--line);
+}
+.shop-name { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+.shop-level {
+  font-size: 10px; color: var(--gold); background: rgba(255,206,84,0.14);
+  padding: 1px 6px; border-radius: 6px; font-weight: 800;
+}
+.shop-desc { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+.shop-desc .lock-req { color: var(--red); }
+.shop-effect { font-size: 11px; color: var(--green); font-weight: 700; margin-top: 2px; }
+.shop-buy-btn {
+  background: linear-gradient(180deg, #14424a, #0d2b31);
+  border: 1px solid rgba(110,231,240,0.45); color: var(--gem);
+  border-radius: 10px; padding: 9px 14px; cursor: pointer;
+  font-size: 13px; font-weight: 800; white-space: nowrap; transition: all .12s;
+}
+.shop-buy-btn:hover:not(:disabled) { border-color: var(--gem); transform: translateY(-1px); }
+.shop-buy-btn:disabled { opacity: .4; cursor: not-allowed; }
+.shop-maxed { font-size: 12px; color: var(--gold); font-weight: 800; }
 
 /* ===== 푸터 ===== */
 #footer {
@@ -221,23 +342,25 @@ body {
 #toasts {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; gap: 8px; z-index: 50; align-items: center;
-  pointer-events: none;
+  pointer-events: none; width: max-content; max-width: 92vw;
 }
 .toast {
   background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
   padding: 10px 16px; border-radius: 30px; font-size: 13px; font-weight: 600;
   box-shadow: var(--shadow); animation: toastIn .3s ease, toastOut .3s ease 2.2s forwards;
+  text-align: center;
 }
 .toast.good { border-color: rgba(78,227,154,0.5); }
 .toast.gold { border-color: rgba(255,206,84,0.5); color: var(--gold); }
+.toast.gem { border-color: rgba(110,231,240,0.6); color: var(--gem); }
 @keyframes toastIn { from { opacity: 0; transform: translateY(12px) scale(.95); } }
 @keyframes toastOut { to { opacity: 0; transform: translateY(-12px); } }
 
-/* 떠오르는 수익 표시 */
+/* 떠오르는 생산량 표시 */
 .float-gain {
-  position: absolute; font-size: 13px; font-weight: 800; color: var(--green);
+  position: absolute; font-size: 13px; font-weight: 800; color: var(--gold);
   pointer-events: none; z-index: 5; text-shadow: 0 2px 6px rgba(0,0,0,.6);
-  animation: floatUp 1s ease-out forwards;
+  animation: floatUp 1s ease-out forwards; white-space: nowrap;
 }
 @keyframes floatUp {
   from { opacity: 1; transform: translateY(0); }
@@ -281,5 +404,9 @@ body {
   .line { grid-template-columns: 52px 1fr; }
   .line-icon-wrap { width: 52px; height: 52px; font-size: 26px; }
   .line-actions { grid-column: 1 / -1; flex-direction: row; min-width: 0; }
-  .line-actions .buy-btn, .line-actions .mgr-btn { flex: 1; }
+  .line-actions .buy-btn, .line-actions .buyer-btn, .line-actions .mgr-btn { flex: 1; padding-left: 4px; padding-right: 4px; }
+  .quest { grid-template-columns: 1fr; }
+  .quest-right { flex-direction: row; align-items: center; justify-content: space-between; }
+  .shop-item { grid-template-columns: 42px 1fr; }
+  .shop-buy-btn { grid-column: 1 / -1; }
 }

@@ -24,30 +24,56 @@
         </div>
         <div class="money-sub">
           <span id="per-second">₩0/초</span>
+          <span id="gems" class="gem-counter" title="잼: 퀘스트 보상으로 획득">💎 0</span>
           <span id="prestige-bonus" class="prestige-bonus" title="재투자 보너스">×1.00</span>
         </div>
       </div>
     </header>
 
-    <!-- 구매 모드 토글 -->
-    <div id="controls">
-      <div class="buy-mode">
-        <span class="ctl-label">구매 수량</span>
-        <div class="seg">
-          <button class="seg-btn active" data-mode="1">×1</button>
-          <button class="seg-btn" data-mode="10">×10</button>
-          <button class="seg-btn" data-mode="100">×100</button>
-          <button class="seg-btn" data-mode="max">MAX</button>
-        </div>
-      </div>
-      <button id="prestige-btn" class="prestige-btn" title="누적 수익을 명성으로 환산해 처음부터 다시 시작합니다">
-        ♻️ 재투자
-        <span id="prestige-gain" class="pill">+0</span>
-      </button>
-    </div>
+    <!-- 탭 -->
+    <nav id="tabs">
+      <button class="tab-btn active" data-tab="factory">🏭 공장</button>
+      <button class="tab-btn" data-tab="quests">📜 퀘스트 <span id="quest-badge" class="tab-badge hidden">0</span></button>
+      <button class="tab-btn" data-tab="shop">💎 상점</button>
+    </nav>
 
-    <!-- 생산 라인 목록 -->
-    <main id="lines"></main>
+    <!-- ===== 공장 탭 ===== -->
+    <section id="tab-factory" class="tab-page">
+      <div id="controls">
+        <div class="buy-mode">
+          <span class="ctl-label">구매 수량</span>
+          <div class="seg">
+            <button class="seg-btn active" data-mode="1">×1</button>
+            <button class="seg-btn" data-mode="10">×10</button>
+            <button class="seg-btn" data-mode="100">×100</button>
+            <button class="seg-btn" data-mode="max">MAX</button>
+          </div>
+        </div>
+        <button id="prestige-btn" class="prestige-btn" title="누적 수익을 명성으로 환산해 처음부터 다시 시작합니다">
+          ♻️ 재투자
+          <span id="prestige-gain" class="pill">+0</span>
+        </button>
+      </div>
+
+      <p class="help-note">
+        ⚙️ <b>설비</b>가 많을수록 한 사이클에 생산되는 개수가 늘어요 →
+        생산품은 <b>📦 재고</b>로 쌓이고 → <b>🛒 구매자</b>가 자동으로 사가면서 돈이 됩니다.
+      </p>
+
+      <main id="lines"></main>
+    </section>
+
+    <!-- ===== 퀘스트 탭 ===== -->
+    <section id="tab-quests" class="tab-page hidden">
+      <p class="help-note">📜 퀘스트를 달성하면 <b>💎 잼</b>을 받아요. 일부 퀘스트는 상점의 특수 업그레이드를 해금합니다.</p>
+      <div id="quest-list"></div>
+    </section>
+
+    <!-- ===== 상점 탭 ===== -->
+    <section id="tab-shop" class="tab-page hidden">
+      <p class="help-note">💎 잼으로 강력한 특수 업그레이드를 구매하세요. 🔒 표시는 특정 퀘스트를 달성해야 해금됩니다.</p>
+      <div id="shop-list"></div>
+    </section>
 
     <footer id="footer">
       <button id="save-btn" class="ghost-btn">💾 저장</button>

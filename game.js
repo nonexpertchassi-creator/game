@@ -40,6 +40,7 @@
       hasManager: false,
       inventory: 0,   // 📦 쌓인 생산품
       buyerLv: 1,     // 🛒 구매자 레벨 (판매 속도)
+      qualityLv: 0,   // 💠 품질 레벨 (판매가 +25%씩)
     }));
   }
 
@@ -51,7 +52,7 @@
       fame: 0,              // 명성(프레스티지 포인트)
       buyMode: 1,
       lastTick: Date.now(),
-      upgrades: { speed: 0, sell: 0, offline: 0 }, // 💎 상점 업그레이드 레벨
+      upgrades: { speed: 0, sell: 0, offline: 0, brand: 0 }, // 💎 상점 업그레이드 레벨
       claimed: {},          // 수령한 퀘스트 { questId: true }
       stats: { totalSold: 0, prestiges: 0 }, // 전체 기간 통계 (재투자에도 유지)
       lines: freshLines(),
@@ -79,8 +80,18 @@
   // 사이클당 생산 개수
   function itemsPerCycle(line) { return line.count * milestoneMult(line.count); }
 
-  // 생산품 1개 판매가 (명성 반영)
-  function itemPrice(line) { return def(line.id).price * fameMult(); }
+  // 생산품 1개 판매가 (💠 품질 × 🏅 브랜드 × 명성 반영)
+  function itemPrice(line) {
+    return def(line.id).price
+      * Math.pow(1.25, line.qualityLv)
+      * (1 + 0.2 * state.upgrades.brand)
+      * fameMult();
+  }
+
+  // 💠 품질 다음 레벨 비용
+  function qualityCost(line) {
+    return def(line.id).baseCost * 25 * Math.pow(3.2, line.qualityLv);
+  }
 
   // 초당 판매 개수 (구매자 레벨 + 📣 마케팅 업그레이드 반영)
   function sellRate(line) {
@@ -122,6 +133,7 @@
 
   function managerCount() { return state.lines.filter(l => l.hasManager).length; }
   function buyerLvSum() { return state.lines.reduce((s, l) => s + (l.count > 0 ? l.buyerLv : 0), 0); }
+  function qualityLvSum() { return state.lines.reduce((s, l) => s + l.qualityLv, 0); }
 
   // ---------- 숫자 포맷 ----------
   const UNITS = ['', 'K', 'M', 'B', 'T', 'aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag'];
@@ -155,6 +167,7 @@
     { id: 'q_screw100', name: '나사 대량 생산', desc: '나사 공장 설비 100대 보유',       gems: 5,  prog: () => [ls('screw').count, 100] },
     { id: 'q_mgr3',     name: '경영진 구성',    desc: '매니저 3명 고용',                 gems: 5,  unlocks: 'speed', prog: () => [managerCount(), 3] },
     { id: 'q_buyer10',  name: '영업왕',         desc: '구매자 레벨 합계 10 달성',        gems: 5,  unlocks: 'sell',  prog: () => [buyerLvSum(), 10] },
+    { id: 'q_quality5', name: '품질 장인',      desc: '품질 레벨 합계 5 달성',           gems: 5,  unlocks: 'brand', prog: () => [qualityLvSum(), 5] },
     { id: 'q_sold10m',  name: '중견기업',       desc: '누적 판매 수익 ₩10M 달성',        gems: 8,  prog: () => [state.stats.totalSold, 1e7] },
     { id: 'q_arm',      name: '자동화 시대',    desc: '로봇팔 조립 설비 1대 보유',       gems: 6,  prog: () => [ls('arm').count, 1] },
     { id: 'q_prestige', name: '다시 태어나다',  desc: '재투자 1회 달성',                 gems: 10, unlocks: 'warp', prog: () => [state.stats.prestiges, 1] },
@@ -186,6 +199,10 @@
       desc: '모든 라인의 판매 속도 +25% (누적)',
       costs: [4, 8, 15, 25, 40],
       effect: lv => `현재: 판매 속도 +${lv * 25}%` },
+    { id: 'brand',   name: '프리미엄 브랜드', icon: '🏅', max: 5,
+      desc: '모든 생산품 판매가 +20% (누적)',
+      costs: [5, 10, 18, 30, 50],
+      effect: lv => `현재: 판매가 +${lv * 20}%` },
     { id: 'offline', name: '야간 근무조',   icon: '🌙', max: 4,
       desc: '오프라인 수익 한도 +2시간',
       costs: [6, 12, 24, 48],
@@ -230,6 +247,18 @@
     state.money -= cost;
     line.buyerLv += 1;
     toast(`🛒 ${def(id).name} 구매자 Lv.${line.buyerLv}! 판매 속도 상승`, 'good');
+    updateLineDOM(id);
+    refreshHeader();
+  }
+
+  function upgradeQuality(id) {
+    const line = ls(id);
+    if (line.count <= 0) return;
+    const cost = qualityCost(line);
+    if (state.money < cost) return;
+    state.money -= cost;
+    line.qualityLv += 1;
+    toast(`💠 ${def(id).name} 품질 Lv.${line.qualityLv}! 판매가 +25%`, 'good');
     updateLineDOM(id);
     refreshHeader();
   }
@@ -331,6 +360,75 @@
     state.lifetime += earned;
     state.stats.totalSold += earned;
     return earned;
+  }
+
+  // ---------- 🚛 긴급 대량 주문 이벤트 ----------
+  // 랜덤 주기로 재고가 쌓인 라인에 프리미엄 가격 주문이 옴 (수락 시 재고 전량 판매)
+  let activeOrder = null; // { lineId, mult, expires }
+  let nextOrderAt = Date.now() + 60000 + Math.random() * 60000;
+
+  function updateOrders(now) {
+    if (activeOrder && now >= activeOrder.expires) {
+      activeOrder = null;
+      nextOrderAt = now + 60000 + Math.random() * 90000;
+      renderOrderBanner();
+      return;
+    }
+    if (!activeOrder && now >= nextOrderAt) {
+      // 재고가 10초 판매 분량 이상 쌓인 라인 중 하나를 랜덤 선택
+      const candidates = state.lines.filter(l =>
+        l.count > 0 && l.inventory > Math.max(10, sellRate(l) * 10));
+      if (candidates.length === 0) {
+        nextOrderAt = now + 30000; // 나중에 재시도
+        return;
+      }
+      const line = candidates[Math.floor(Math.random() * candidates.length)];
+      activeOrder = {
+        lineId: line.id,
+        mult: Math.round((1.5 + Math.random()) * 10) / 10, // ×1.5 ~ ×2.5
+        expires: now + 20000,
+      };
+      toast('🚛 긴급 대량 주문이 도착했어요!', 'gold');
+      renderOrderBanner();
+    }
+  }
+
+  function acceptOrder() {
+    if (!activeOrder) return;
+    const line = ls(activeOrder.lineId);
+    const qty = line.inventory;
+    if (qty <= 0) { activeOrder = null; renderOrderBanner(); return; }
+    const gain = qty * itemPrice(line) * activeOrder.mult;
+    line.inventory = 0;
+    state.money += gain;
+    state.lifetime += gain;
+    state.stats.totalSold += gain;
+    incomeAcc += gain;
+    toast(`🚛 ${def(line.id).name} ${fmtNum(qty)}개 일괄 판매! +${fmt(gain)}`, 'gold');
+    activeOrder = null;
+    nextOrderAt = Date.now() + 90000 + Math.random() * 90000;
+    renderOrderBanner();
+    updateLineDOM(line.id);
+    refreshHeader();
+  }
+
+  function renderOrderBanner() {
+    const el = document.getElementById('order-banner');
+    if (!activeOrder) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+    const line = ls(activeOrder.lineId);
+    const d = def(line.id);
+    const remain = Math.max(0, Math.ceil((activeOrder.expires - Date.now()) / 1000));
+    const estimate = line.inventory * itemPrice(line) * activeOrder.mult;
+    el.innerHTML = `
+      <div>
+        <div class="order-title">🚛 긴급 대량 주문!</div>
+        <div class="order-desc">${d.icon} <b>${d.name}</b> 재고 전량(${fmtNum(line.inventory)}개)을
+          개당 <b>×${activeOrder.mult}</b> 가격에 매입 희망 → 약 <b>${fmt(estimate)}</b></div>
+        <div class="order-timer">⏱️ ${remain}초 후 주문 취소</div>
+      </div>
+      <button class="order-accept-btn" data-accept-order="1">판매하기</button>
+    `;
+    el.classList.remove('hidden');
   }
 
   // ---------- 퀘스트 수령 ----------
@@ -444,6 +542,11 @@
         <div class="progress-track">
           <div class="progress-fill"></div>
           <div class="progress-label"></div>
+          <span class="worker">👷</span>
+        </div>
+        <div class="delivery-track">
+          <span class="deliver-hint"></span>
+          <span class="truck">🚚</span>
         </div>
       </div>
       <div class="line-actions">
@@ -452,6 +555,7 @@
           <div class="bt-cost"></div>
         </button>
         <button class="buyer-btn" data-buyer="${line.id}"></button>
+        <button class="quality-btn" data-quality="${line.id}"></button>
         <button class="mgr-btn" data-mgr="${line.id}"></button>
       </div>
     `;
@@ -513,6 +617,24 @@
       buyerBtn.disabled = true;
     }
 
+    // 품질 버튼
+    const qBtn = el.querySelector('.quality-btn');
+    if (line.count > 0) {
+      const qc = qualityCost(line);
+      qBtn.innerHTML = `💠 품질 Lv.${line.qualityLv + 1} · ${fmt(qc)}`;
+      qBtn.disabled = state.money < qc;
+    } else {
+      qBtn.innerHTML = '💠 품질';
+      qBtn.disabled = true;
+    }
+
+    // 🚚 배송 트랙: 재고가 팔리는 중이면 트럭이 달림
+    const dt = el.querySelector('.delivery-track');
+    const delivering = line.count > 0 && line.inventory > 0.5;
+    dt.classList.toggle('delivering', delivering);
+    dt.querySelector('.deliver-hint').textContent =
+      line.count === 0 ? '' : (delivering ? `배송 중 · ${fmt(sellRate(line) * itemPrice(line))}/초` : '재고 대기 중');
+
     // 매니저 버튼
     const mgrBtn = el.querySelector('.mgr-btn');
     if (line.hasManager) {
@@ -532,7 +654,19 @@
     const line = ls(id);
     const el = document.getElementById('line-' + id);
     if (!el) return;
-    el.querySelector('.progress-fill').style.width = (line.progress * 100).toFixed(1) + '%';
+    const pct = (line.progress * 100).toFixed(1);
+    el.querySelector('.progress-fill').style.width = pct + '%';
+
+    // 👷 노동자가 진행바 끝을 따라 이동
+    const worker = el.querySelector('.worker');
+    if (line.count > 0) {
+      worker.style.display = '';
+      worker.style.left = pct + '%';
+      worker.classList.toggle('working', line.running);
+    } else {
+      worker.style.display = 'none';
+    }
+
     const label = el.querySelector('.progress-label');
     if (line.count === 0) {
       label.textContent = '';
@@ -703,6 +837,7 @@
           line.hasManager = !!sl.hasManager;
           line.inventory = sl.inventory ?? 0;
           line.buyerLv = sl.buyerLv ?? 1;
+          line.qualityLv = sl.qualityLv ?? 0;
           line.running = line.hasManager && line.count > 0;
           line.progress = 0;
         }
@@ -737,6 +872,8 @@
       if (buy) { buyLine(buy.dataset.buy); return; }
       const buyer = e.target.closest('[data-buyer]');
       if (buyer) { upgradeBuyer(buyer.dataset.buyer); return; }
+      const quality = e.target.closest('[data-quality]');
+      if (quality) { upgradeQuality(quality.dataset.quality); return; }
       const mgr = e.target.closest('[data-mgr]');
       if (mgr) { hireManager(mgr.dataset.mgr); return; }
       const clickable = e.target.closest('[data-click]');
@@ -751,6 +888,10 @@
     document.getElementById('shop-list').addEventListener('click', (e) => {
       const buy = e.target.closest('[data-shop]');
       if (buy) buyShopItem(buy.dataset.shop);
+    });
+
+    document.getElementById('order-banner').addEventListener('click', (e) => {
+      if (e.target.closest('[data-accept-order]')) acceptOrder();
     });
 
     // 탭 전환
@@ -785,12 +926,14 @@
       renderAll();
     });
 
-    // 1초 주기: 수익/초 계산, 라인 갱신, 퀘스트 체크
+    // 1초 주기: 수익/초 계산, 라인 갱신, 퀘스트/주문 체크
     setInterval(() => {
       incomePerSec = incomeAcc;
       incomeAcc = 0;
       state.lines.forEach(l => updateLineDOM(l.id));
       checkQuestNotify();
+      updateOrders(Date.now());
+      if (activeOrder) renderOrderBanner(); // 남은 시간 갱신
       refreshHeader();
     }, 1000);
 

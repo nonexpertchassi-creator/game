@@ -33,6 +33,7 @@
     <!-- 탭 -->
     <nav id="tabs">
       <button class="tab-btn active" data-tab="factory">🏭 공장</button>
+      <button class="tab-btn" data-tab="research">🔬 연구 <span id="research-badge" class="tab-badge hidden">!</span></button>
       <button class="tab-btn" data-tab="quests">📜 퀘스트 <span id="quest-badge" class="tab-badge hidden">0</span></button>
       <button class="tab-btn" data-tab="shop">💎 상점</button>
     </nav>
@@ -56,13 +57,21 @@
       </div>
 
       <p class="help-note">
-        ⚙️ <b>설비</b>가 많을수록 한 사이클에 생산되는 개수가 늘어요 →
-        생산품은 <b>📦 재고</b>로 쌓이고 → <b>🛒 구매자</b>가 자동으로 사가면서 돈이 됩니다.
+        ⛏️ <b>채집</b>으로 원자재를 캐고 → 🔧 <b>파트</b>가 원자재를 소비해 부품을 만들고 →
+        🏗️ <b>조립</b>이 부품으로 완제품을 만들어요. 재고는 <b>🛒 구매자</b>가 자동 판매!
+        재료가 부족하면 라인이 멈추니 공급망 균형을 맞춰보세요.
+        새 라인은 <b>🔬 연구</b>로 해금됩니다.
       </p>
 
       <div id="order-banner" class="hidden"></div>
 
       <main id="lines"></main>
+    </section>
+
+    <!-- ===== 연구 탭 ===== -->
+    <section id="tab-research" class="tab-page hidden">
+      <p class="help-note">🔬 연구는 한 번에 하나씩 진행돼요. 비용을 내고 시간이 지나면 완료! 선행 연구가 필요한 것도 있어요. 완료한 연구는 ♻️ 재투자해도 유지됩니다.</p>
+      <div id="research-list"></div>
     </section>
 
     <!-- ===== 퀘스트 탭 ===== -->

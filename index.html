@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>🏭 방치형 공장 타이쿤</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- 상단 바 -->
+    <header id="topbar">
+      <div class="brand">
+        <span class="logo">🏭</span>
+        <div class="brand-text">
+          <h1>공장 타이쿤</h1>
+          <span class="tagline">Idle Factory Tycoon</span>
+        </div>
+      </div>
+      <div class="money-box">
+        <div class="money-main">
+          <span class="money-label">보유 자금</span>
+          <span id="money">₩0</span>
+        </div>
+        <div class="money-sub">
+          <span id="per-second">₩0/초</span>
+          <span id="prestige-bonus" class="prestige-bonus" title="재투자 보너스">×1.00</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 구매 모드 토글 -->
+    <div id="controls">
+      <div class="buy-mode">
+        <span class="ctl-label">구매 수량</span>
+        <div class="seg">
+          <button class="seg-btn active" data-mode="1">×1</button>
+          <button class="seg-btn" data-mode="10">×10</button>
+          <button class="seg-btn" data-mode="100">×100</button>
+          <button class="seg-btn" data-mode="max">MAX</button>
+        </div>
+      </div>
+      <button id="prestige-btn" class="prestige-btn" title="누적 수익을 명성으로 환산해 처음부터 다시 시작합니다">
+        ♻️ 재투자
+        <span id="prestige-gain" class="pill">+0</span>
+      </button>
+    </div>
+
+    <!-- 생산 라인 목록 -->
+    <main id="lines"></main>
+
+    <footer id="footer">
+      <button id="save-btn" class="ghost-btn">💾 저장</button>
+      <button id="reset-btn" class="ghost-btn danger">🗑️ 초기화</button>
+      <span class="footer-note">진행 상황은 자동 저장돼요 · 오프라인 수익도 쌓입니다</span>
+    </footer>
+  </div>
+
+  <!-- 토스트 알림 영역 -->
+  <div id="toasts"></div>
+
+  <!-- 오프라인 수익 모달 -->
+  <div id="offline-modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-emoji">💤</div>
+      <h2>다녀오셨군요!</h2>
+      <p>자리를 비운 사이 공장이 돌아갔어요.</p>
+      <div class="offline-amount" id="offline-amount">₩0</div>
+      <p class="offline-time" id="offline-time"></p>
+      <button id="offline-close" class="primary-btn">수령하기</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
